@@ -2072,6 +2072,503 @@ public class CustomSteps {
         }
     }
     
+    // ================================
+    // LAST ROW VERIFICATION STEP DEFINITION
+    // ================================
+    
+    /**
+     * Verifies that a newly added row appears as the last row in a table.
+     * 
+     * @param columnName The name of the column to search in
+     * @param value The value to search for in that column
+     * @throws Throwable If verification fails
+     */
+    @Then("I verify row with {string} value {string} appears as the last row in the table")
+    public void verifyRowAppearsAsLastRow(String columnName, String value) throws Throwable {
+        try {
+            logger.info("=== STARTING LAST ROW VERIFICATION ===");
+            logger.info("Verifying row with {}='{}' appears as the last row in the table", columnName, value);
+            
+            // Replace test data placeholders
+            String resolvedColumnName = commonSteps.replaceTestDataPlaceholders(columnName);
+            String resolvedValue = commonSteps.replaceTestDataPlaceholders(value);
+            
+            logger.info("Resolved parameters - Column: '{}', Value: '{}'", resolvedColumnName, resolvedValue);
+            
+            // Step 1: Check if table has pagination
+            boolean hasPagination = checkIfTableHasPagination();
+            logger.info("Table has pagination: {}", hasPagination);
+            
+            if (hasPagination) {
+                // Navigate to last page and verify
+                verifyLastRowWithPagination(resolvedColumnName, resolvedValue);
+            } else {
+                // Check single page table
+                verifyLastRowSinglePage(resolvedColumnName, resolvedValue);
+            }
+            
+            // Take screenshot on success
+            addDemoDelay();
+            try {
+                commonSteps.takeScreenshot("Last Row Verification Success");
+            } catch (Throwable t) {
+                logger.error("Error taking screenshot: {}", t.getMessage());
+                t.printStackTrace();
+                throw new RuntimeException("Screenshot failed: " + t.getMessage(), t);
+            }
+            
+            ReportManager.logPass("Last Row Verification", 
+                String.format("Successfully verified row with %s='%s' appears as the last row", resolvedColumnName, resolvedValue));
+            logger.info("=== LAST ROW VERIFICATION COMPLETED SUCCESSFULLY ===");
+            
+        } catch (AssertionError e) {
+            logger.error("=== LAST ROW VERIFICATION FAILED ===");
+            logger.error("Assertion failed: {}", e.getMessage());
+            
+            // Take screenshot on failure
+            addDemoDelay();
+            try {
+                commonSteps.takeScreenshot("Last Row Verification Failed");
+            } catch (Throwable t) {
+                logger.error("Error taking screenshot: {}", t.getMessage());
+            }
+            
+            ReportManager.logFail("Last Row Verification Failed", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("=== LAST ROW VERIFICATION FAILED ===");
+            logger.error("Error during last row verification: {}", e.getMessage());
+            
+            // Take screenshot on error
+            addDemoDelay();
+            try {
+                commonSteps.takeScreenshot("Last Row Verification Error");
+            } catch (Throwable t) {
+                logger.error("Error taking screenshot: {}", t.getMessage());
+            }
+            
+            ReportManager.logFail("Last Row Verification Error", e.getMessage());
+            throw new RuntimeException("Last row verification failed: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Checks if the table has pagination controls
+     * 
+     * @return true if pagination exists, false otherwise
+     */
+    private boolean checkIfTableHasPagination() {
+        try {
+            WebElement paginationContainer = findPaginationContainer();
+            if (paginationContainer != null) {
+                // Check for page buttons or navigation elements
+                List<WebElement> pageElements = paginationContainer.findElements(By.xpath(
+                    ".//button[matches(text(),'^[0-9]+$')] | .//a[matches(text(),'^[0-9]+$')] | " +
+                    ".//button[contains(text(),'>') or contains(@title,'Next')] | " +
+                    ".//button[contains(text(),'<') or contains(@title,'Previous')]"
+                ));
+                return !pageElements.isEmpty();
+            }
+        } catch (Exception e) {
+            logger.debug("Error checking pagination: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    /**
+     * Verifies last row in a table with pagination
+     * 
+     * @param columnName The column name to search in
+     * @param value The value to search for
+     * @throws Throwable If verification fails
+     */
+    private void verifyLastRowWithPagination(String columnName, String value) throws Throwable {
+        try {
+            logger.info("Verifying last row in paginated table");
+            
+            // Navigate to the last page
+            navigateToLastPage();
+            
+            // Check if the last row contains the specified value
+            boolean isLastRow = checkIfValueIsInLastRow(columnName, value);
+            
+            if (isLastRow) {
+                logger.info("Successfully found value '{}' in column '{}' in the last row of last page", value, columnName);
+                ReportManager.logPass("Last Row Check", 
+                    String.format("Value '%s' found in column '%s' in the last row of the table", value, columnName));
+            } else {
+                // Search all pages to find where the row actually is
+                searchAllPagesAndReport(columnName, value);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error verifying last row with pagination: {}", e.getMessage());
+            throw new RuntimeException("Pagination verification failed: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Verifies last row in a single page table
+     * 
+     * @param columnName The column name to search in
+     * @param value The value to search for
+     * @throws Throwable If verification fails
+     */
+    private void verifyLastRowSinglePage(String columnName, String value) throws Throwable {
+        try {
+            logger.info("Verifying last row in single page table");
+            
+            boolean isLastRow = checkIfValueIsInLastRow(columnName, value);
+            
+            if (isLastRow) {
+                logger.info("Successfully found value '{}' in column '{}' in the last row", value, columnName);
+                ReportManager.logPass("Last Row Check", 
+                    String.format("Value '%s' found in column '%s' in the last row of the table", value, columnName));
+            } else {
+                // Search the entire single page to find where the row actually is
+                searchSinglePageAndReport(columnName, value);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error verifying last row in single page: {}", e.getMessage());
+            throw new RuntimeException("Single page verification failed: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Navigates to the last page of a paginated table
+     * 
+     * @throws Exception If navigation fails
+     */
+    private void navigateToLastPage() throws Exception {
+        try {
+            logger.info("Navigating to last page");
+            
+            WebElement paginationContainer = findPaginationContainer();
+            if (paginationContainer == null) {
+                throw new Exception("Pagination container not found");
+            }
+            
+            int maxAttempts = 50; // Prevent infinite loops
+            int attempts = 0;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    // Look for Next button
+                    WebElement nextButton = paginationContainer.findElement(By.xpath(
+                        ".//button[contains(text(),'>') or contains(@title,'Next') or contains(@class,'next') or contains(@aria-label,'Next')]"
+                    ));
+                    
+                    // Check if Next button is enabled
+                    if (!isNextButtonEnabled()) {
+                        logger.info("Reached last page after {} navigation attempts", attempts);
+                        break;
+                    }
+                    
+                    // Click Next button
+                    nextButton.click();
+                    attempts++;
+                    
+                    // Wait for page to load
+                    waitForTableUpdate();
+                    addDemoDelay();
+                    
+                    logger.debug("Navigated to next page, attempt: {}", attempts);
+                    
+                } catch (NoSuchElementException e) {
+                    logger.info("Next button not found, assuming last page reached after {} attempts", attempts);
+                    break;
+                }
+            }
+            
+            if (attempts >= maxAttempts) {
+                throw new Exception("Failed to reach last page within " + maxAttempts + " attempts");
+            }
+            
+            ReportManager.logPass("Navigation", "Successfully navigated to last page");
+            
+        } catch (Exception e) {
+            logger.error("Error navigating to last page: {}", e.getMessage());
+            throw new Exception("Failed to navigate to last page: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Checks if the specified value exists in the last row of the current page
+     * 
+     * @param columnName The column name to search in
+     * @param value The value to search for
+     * @return true if value is found in the last row, false otherwise
+     */
+    private boolean checkIfValueIsInLastRow(String columnName, String value) {
+        try {
+            logger.debug("Checking if value '{}' exists in last row of column '{}'", value, columnName);
+            
+            // Find all table rows
+            List<WebElement> rows = driver.findElements(By.xpath("//table//tbody//tr"));
+            
+            if (rows.isEmpty()) {
+                logger.warn("No table rows found");
+                return false;
+            }
+            
+            // Get the last row
+            WebElement lastRow = rows.get(rows.size() - 1);
+            logger.debug("Found {} total rows, checking last row (index {})", rows.size(), rows.size() - 1);
+            
+            // Find the column index
+            int columnIndex = findColumnIndex(columnName, null);
+            if (columnIndex == -1) {
+                logger.error("Column '{}' not found in table headers", columnName);
+                return false;
+            }
+            
+            // Get cells in the last row
+            List<WebElement> cells = lastRow.findElements(By.xpath(".//td"));
+            if (cells.size() <= columnIndex) {
+                logger.warn("Last row has {} cells, but column index is {}", cells.size(), columnIndex);
+                return false;
+            }
+            
+            // Check if the value matches
+            String cellText = cells.get(columnIndex).getText().trim();
+            boolean matches = value.equals(cellText);
+            
+            logger.debug("Last row cell text in column '{}': '{}', Expected: '{}', Matches: {}", 
+                columnName, cellText, value, matches);
+            
+            return matches;
+            
+        } catch (Exception e) {
+            logger.error("Error checking last row: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Searches all pages to find where the row actually exists and reports the location
+     * 
+     * @param columnName The column name to search in
+     * @param value The value to search for
+     * @throws AssertionError Always throws since this means the row was not in the last position
+     */
+    private void searchAllPagesAndReport(String columnName, String value) throws AssertionError {
+        try {
+            logger.info("Searching all pages to locate row with {}='{}'", columnName, value);
+            
+            // Navigate back to first page
+            navigateToFirstPage();
+            
+            int currentPage = 1;
+            boolean found = false;
+            String foundLocation = "";
+            
+            do {
+                logger.debug("Searching page {} for value '{}'", currentPage, value);
+                
+                // Search current page
+                int rowNumber = findRowNumberOnCurrentPage(columnName, value);
+                
+                if (rowNumber > 0) {
+                    found = true;
+                    foundLocation = String.format("row number %d on page %d", rowNumber, currentPage);
+                    logger.info("Found value '{}' at {}", value, foundLocation);
+                    break;
+                }
+                
+                // Try to go to next page
+                if (hasNextPage(null)) {
+                    if (!goToNextPage(null)) {
+                        break;
+                    }
+                    currentPage++;
+                } else {
+                    break;
+                }
+                
+            } while (true);
+            
+            if (found) {
+                String errorMessage = String.format(
+                    "Row with value '%s' in column '%s' found in %s, but not in the last row.", 
+                    value, columnName, foundLocation
+                );
+                logger.error(errorMessage);
+                ReportManager.logFail("Last Row Verification", errorMessage);
+                throw new AssertionError(errorMessage);
+            } else {
+                String errorMessage = String.format(
+                    "Row with value '%s' in column '%s' not found in the table.", 
+                    value, columnName
+                );
+                logger.error(errorMessage);
+                ReportManager.logFail("Last Row Verification", errorMessage);
+                throw new AssertionError(errorMessage);
+            }
+            
+        } catch (AssertionError e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error during comprehensive search: {}", e.getMessage());
+            String errorMessage = String.format(
+                "Error occurred while searching for row with value '%s' in column '%s': %s", 
+                value, columnName, e.getMessage()
+            );
+            ReportManager.logFail("Last Row Verification", errorMessage);
+            throw new AssertionError(errorMessage, e);
+        }
+    }
+    
+    /**
+     * Searches single page to find where the row actually exists and reports the location
+     * 
+     * @param columnName The column name to search in
+     * @param value The value to search for
+     * @throws AssertionError Always throws since this means the row was not in the last position
+     */
+    private void searchSinglePageAndReport(String columnName, String value) throws AssertionError {
+        try {
+            logger.info("Searching single page to locate row with {}='{}'", columnName, value);
+            
+            int rowNumber = findRowNumberOnCurrentPage(columnName, value);
+            
+            if (rowNumber > 0) {
+                String errorMessage = String.format(
+                    "Row with value '%s' in column '%s' found in row number %d on page 1, but not in the last row.", 
+                    value, columnName, rowNumber
+                );
+                logger.error(errorMessage);
+                ReportManager.logFail("Last Row Verification", errorMessage);
+                throw new AssertionError(errorMessage);
+            } else {
+                String errorMessage = String.format(
+                    "Row with value '%s' in column '%s' not found in the table.", 
+                    value, columnName
+                );
+                logger.error(errorMessage);
+                ReportManager.logFail("Last Row Verification", errorMessage);
+                throw new AssertionError(errorMessage);
+            }
+            
+        } catch (AssertionError e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error during single page search: {}", e.getMessage());
+            String errorMessage = String.format(
+                "Error occurred while searching for row with value '%s' in column '%s': %s", 
+                value, columnName, e.getMessage()
+            );
+            ReportManager.logFail("Last Row Verification", errorMessage);
+            throw new AssertionError(errorMessage, e);
+        }
+    }
+    
+    /**
+     * Finds the row number (1-based) of a value in the specified column on the current page
+     * 
+     * @param columnName The column name to search in
+     * @param value The value to search for
+     * @return The row number (1-based) if found, 0 if not found
+     */
+    private int findRowNumberOnCurrentPage(String columnName, String value) {
+        try {
+            // Find all table rows
+            List<WebElement> rows = driver.findElements(By.xpath("//table//tbody//tr"));
+            
+            if (rows.isEmpty()) {
+                logger.debug("No table rows found on current page");
+                return 0;
+            }
+            
+            // Find the column index
+            int columnIndex = findColumnIndex(columnName, null);
+            if (columnIndex == -1) {
+                logger.error("Column '{}' not found in table headers", columnName);
+                return 0;
+            }
+            
+            // Search through rows
+            for (int i = 0; i < rows.size(); i++) {
+                try {
+                    List<WebElement> cells = rows.get(i).findElements(By.xpath(".//td"));
+                    if (cells.size() > columnIndex) {
+                        String cellText = cells.get(columnIndex).getText().trim();
+                        if (value.equals(cellText)) {
+                            logger.debug("Found value '{}' in row {} (1-based)", value, i + 1);
+                            return i + 1; // Return 1-based row number
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.debug("Error processing row {}: {}", i + 1, e.getMessage());
+                }
+            }
+            
+            logger.debug("Value '{}' not found on current page", value);
+            return 0;
+            
+        } catch (Exception e) {
+            logger.error("Error finding row number: {}", e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Navigates to the first page of a paginated table
+     * 
+     * @throws Exception If navigation fails
+     */
+    private void navigateToFirstPage() throws Exception {
+        try {
+            logger.debug("Navigating to first page");
+            
+            WebElement paginationContainer = findPaginationContainer();
+            if (paginationContainer == null) {
+                logger.debug("No pagination container found, assuming single page");
+                return;
+            }
+            
+            int maxAttempts = 50; // Prevent infinite loops
+            int attempts = 0;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    // Look for Previous button
+                    WebElement prevButton = paginationContainer.findElement(By.xpath(
+                        ".//button[contains(text(),'<') or contains(@title,'Previous') or contains(@class,'prev') or contains(@aria-label,'Previous')]"
+                    ));
+                    
+                    // Check if Previous button is enabled
+                    if (!isPreviousButtonEnabled()) {
+                        logger.debug("Reached first page after {} navigation attempts", attempts);
+                        break;
+                    }
+                    
+                    // Click Previous button
+                    prevButton.click();
+                    attempts++;
+                    
+                    // Wait for page to load
+                    waitForTableUpdate();
+                    Thread.sleep(500);
+                    
+                    logger.debug("Navigated to previous page, attempt: {}", attempts);
+                    
+                } catch (NoSuchElementException e) {
+                    logger.debug("Previous button not found, assuming first page reached after {} attempts", attempts);
+                    break;
+                }
+            }
+            
+            if (attempts >= maxAttempts) {
+                throw new Exception("Failed to reach first page within " + maxAttempts + " attempts");
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error navigating to first page: {}", e.getMessage());
+            throw new Exception("Failed to navigate to first page: " + e.getMessage(), e);
+        }
+    }
+    
     
     /**
      * Find pagination container using multiple XPath selectors
