@@ -1,0 +1,95 @@
+
+{
+  "_comment": "Framework Name: Novac Automation Framework | Author: SriramR-NOVAC | File Name: LoginPage.json | Description: Object repository for login page elements with their XPath locators",
+  "pageName": "PlanMaster",
+  "elements": [
+	{
+		"name": "Plan",
+		"xpathValue": "//*[@id='root']/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/main[1]/div[2]/div[1]/div[1]/div[3]/div[1]/div[1]/p[1]"
+	},
+	{
+		"name": "Plan PLN",
+		"xpathValue": "/html/body/div[1]/div/div/div/div[1]/div/div/main/div[2]/div[1]/div[1]/div[3]/div[1]"
+	},
+	{
+		"name": "Add list",
+		"xpathValue": "//*[@id='root']/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/main[1]/div[2]/div[1]/div[2]/div[1]/img[1]"
+	},
+	{
+		"name": "Create List - Plan",
+		"xpathValue": "/html/body/div[15]/div/div[2]/div/div[1]/div/div/div[1]/div/div"
+	},
+	{
+		"name": "CommonMasterCode",
+		"xpathValue": "//*[@id='CommonMasterCode']"
+	},
+	{
+		"name": "CommonMasterName",
+		"xpathValue": "//*[@id='CommonMasterName']"
+	},
+	{
+		"name": "CommonMasterDescription",
+		"xpathValue": "//*[@id='CommonMasterDescription for Report']"
+	},
+	{
+		"name": "Eff from",
+		"xpathValue": "//*[@id='CommonMasterForm']/div[1]/div[4]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]"
+	},
+	{
+		"name": "Eff to",
+		"xpathValue": "//*[@id='CommonMasterForm']/div[1]/div[5]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]"
+	},
+	{
+		"name": "Eff from date",
+		"xpathValue": "/html/body/div[4]/div/div/div/div/div[1]/div/div[2]/table/tbody/tr[4]/td[@title='2025-06-24']"
+	},
+	{
+		"name": "code error",
+		"xpathValue": "//*[@id='Product MasterForm_code_help']/div[1]"
+	},
+	{
+		"name": "name error",
+		"xpathValue": "//*[@id='Product MasterForm_name_help']/div[1]"
+	},
+	{
+		"name": "effe from error",
+		"xpathValue": "//*[@id='Product MasterForm_EffectiveFrom_help']/div[1]"
+	},
+	{
+		"name": "Save",
+		"xpathValue": "//*[@id='CommonMasterForm']/div[2]/div[2]/button[1]"
+	},
+	{
+		"name": "Cancel",
+		"xpathValue": "//*[@id='CommonMasterForm']/div[2]/div[1]/button[1]"
+	},
+	{
+		"name": "successfully toast",
+		"xpathValue": "//*[@id='2']/div[1]/div[2]"
+	},
+	{
+		"name": "edit icon",
+		"xpathValue": "//*[@id='root']/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/main[1]/div[2]/div[1]/div[3]/div[1]/img[1]"
+	},
+	{
+		"name": "Edit List",
+		"xpathValue":"//div[text()='Edit List - AutomationPlan']"
+	},
+	{
+		"name": "actualToastMessage",
+		"xpathValue":"/html/body/div[1]/div/div/div/div[2]/div/div/div[1]/div[2]"
+	},
+	{
+	    "name": "Search",
+	    "xpathValue": "//*[@id='root']/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/main[1]/div[2]/div[1]/div[2]/div[2]/div[1]/span[1]/input[1]"
+	},
+	{
+	    "name": "gridResultXPath",
+	    "xpathValue": "//*[@id='my-infinite-scroll-agent']/div[1]/div[1]"
+	},
+	{
+	 "name": "popupHeaderId",
+	 "xpathValue": "//div[@class='drag-handle']"
+	}
+  ]
+}
